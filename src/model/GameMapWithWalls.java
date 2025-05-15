@@ -74,6 +74,21 @@ public class GameMapWithWalls extends GameMap {
             }
         }
     }
+    /**
+     * Checks if a position is walkable
+     * @param row The row to check
+     * @param col The column to check
+     * @return true if the position is walkable, false otherwise
+     */
+    public boolean isWalkable(int row, int col) {
+        // Check bounds
+        if (row < 0 || row >= getRows() || col < 0 || col >= getColumns()) {
+            return false;
+        }
+
+        // Check walkable status from parent class
+        return getWalkableCells()[row][col];
+    }
 
     /**
      * Get all walls
