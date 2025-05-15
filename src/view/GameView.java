@@ -3,45 +3,47 @@ package view;
 import model.BoardModel;
 
 import javax.swing.*;
-import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.border.EmptyBorder;
 import javax.swing.table.TableColumnModel;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.util.logging.Logger;
 
 public class GameView extends JPanel {
+    private static final Logger LOGGER = Logger.getLogger(GameView.class.getName());
+
     private JTable boardTable;
     private BoardModel boardModel;
+    private JPanel statsPanel;
     private JLabel scoreLabel;
     private JLabel timeLabel;
     private JLabel livesLabel;
 
     public GameView(int rows, int columns) {
-        setLayout(new BorderLayout());
+        // Use BorderLayout with zero gaps
+        setLayout(new BorderLayout(0, 0));
+        setBackground(Color.BLACK);
+        setBorder(null); // Explicitly remove any border
 
         // Initialize the board model
         boardModel = new BoardModel(rows, columns);
 
-        // Create the game board table
-        boardTable = new JTable(boardModel);
-        boardTable.setDefaultRenderer(Object.class, new BoardCellRenderer());
+        // Create stats panel
+        createStatsPanel();
 
-        // Configure grid appearance
-        boardTable.setShowGrid(true);
-        boardTable.setGridColor(new Color(255, 255, 0, 80)); // Semi-transparent yellow for thinner appearance
-        boardTable.setIntercellSpacing(new Dimension(0, 0)); // Minimal space between cells
+        // Create game board
+        createGameBoard(rows, columns);
 
-        // Disable cell selection
-        boardTable.setCellSelectionEnabled(false);
-        boardTable.setRowSelectionAllowed(false);
-        boardTable.setColumnSelectionAllowed(false);
-        boardTable.setFocusable(false); // Remove focus border
+        // Add resizing listener
+        setupResizeListener();
+    }
 
-        // Remove table header
-        boardTable.setTableHeader(null);
-
-        // Create a panel for game stats
-        JPanel statsPanel = new JPanel();
-        statsPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+    private void createStatsPanel() {
+        statsPanel = new JPanel();
+        statsPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 10, 5));
         statsPanel.setBackground(Color.BLACK);
+        statsPanel.setBorder(null); // Explicitly remove any border
 
         // Add score, time, and lives labels with larger font
         Font statsFont = new Font("Arial", Font.BOLD, 16);
@@ -59,74 +61,99 @@ public class GameView extends JPanel {
         livesLabel.setFont(statsFont);
 
         statsPanel.add(scoreLabel);
-        statsPanel.add(Box.createHorizontalStrut(20)); // Add spacing
+        statsPanel.add(Box.createHorizontalStrut(20));
         statsPanel.add(timeLabel);
-        statsPanel.add(Box.createHorizontalStrut(20)); // Add spacing
+        statsPanel.add(Box.createHorizontalStrut(20));
         statsPanel.add(livesLabel);
 
-        // Add components to the panel
         add(statsPanel, BorderLayout.NORTH);
+    }
 
-        // Add table in a panel that will handle resizing
-        JPanel tablePanel = new JPanel(new BorderLayout());
-        tablePanel.setBackground(Color.BLACK);
-        tablePanel.add(boardTable, BorderLayout.CENTER);
-        add(tablePanel, BorderLayout.CENTER);
+    private void createGameBoard(int rows, int columns) {
+        // Create the game board table
+        boardTable = new JTable(boardModel);
+        boardTable.setDefaultRenderer(Object.class, new BoardCellRenderer());
 
-        // Set the background color
-        setBackground(Color.BLACK);
+        // Configure grid appearance
+        boardTable.setShowGrid(true);
+        boardTable.setGridColor(new Color(255, 255, 0, 80));
+        boardTable.setIntercellSpacing(new Dimension(0, 0));
 
-        // Add component listener to handle resizing
-        addComponentListener(new java.awt.event.ComponentAdapter() {
-            public void componentResized(java.awt.event.ComponentEvent evt) {
-                resizeTable();
+        // Remove all borders and margins
+        boardTable.setBorder(null);
+        boardTable.setBackground(Color.BLACK);
+
+        // Disable cell selection
+        boardTable.setCellSelectionEnabled(false);
+        boardTable.setRowSelectionAllowed(false);
+        boardTable.setColumnSelectionAllowed(false);
+        boardTable.setFocusable(false);
+
+        // Remove table header
+        boardTable.setTableHeader(null);
+
+        // Set initial row heights
+        int initialCellSize = GameDimensions.calculateCellSize(
+                getPreferredSize().width,
+                getPreferredSize().height - GameDimensions.getStatsHeight(),
+                rows,
+                columns
+        );
+
+        for (int i = 0; i < rows; i++) {
+            boardTable.setRowHeight(i, initialCellSize);
+        }
+
+        // Set initial column widths
+        TableColumnModel columnModel = boardTable.getColumnModel();
+        for (int i = 0; i < columnModel.getColumnCount(); i++) {
+            columnModel.getColumn(i).setPreferredWidth(initialCellSize);
+            columnModel.getColumn(i).setMinWidth(5);
+        }
+
+        // Create a panel to hold the table with specific layout
+        JPanel boardPanel = new JPanel(new GridLayout(1, 1));
+        boardPanel.setBackground(Color.BLACK);
+        boardPanel.setBorder(null); // Explicitly remove any border
+        boardPanel.add(boardTable);
+
+        add(boardPanel, BorderLayout.CENTER);
+    }
+
+    private void setupResizeListener() {
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                safelyResizeTable();
             }
         });
     }
 
-    // Resize table cells when the container is resized
-    private void resizeTable() {
-        int width = getWidth();
-        int height = getHeight() - 40; // Account for stats panel
+    private void safelyResizeTable() {
+        try {
+            int width = getWidth();
+            int height = getHeight() - statsPanel.getHeight();
+            int rows = boardModel.getRowCount();
+            int columns = boardModel.getColumnCount();
 
-        // Determine cell size
-        int cellWidth = width / boardModel.getColumnCount();
-        int cellHeight = height / boardModel.getRowCount();
+            int cellSize = Math.max(Math.min(width / columns, height / rows), 5);
 
-        // Set row heights
-        for (int i = 0; i < boardTable.getRowCount(); i++) {
-            boardTable.setRowHeight(i, cellHeight);
-        }
+            // Update row heights
+            for (int i = 0; i < boardTable.getRowCount(); i++) {
+                boardTable.setRowHeight(i, cellSize);
+            }
 
-        // Set column widths
-        TableColumnModel columnModel = boardTable.getColumnModel();
-        for (int i = 0; i < columnModel.getColumnCount(); i++) {
-            columnModel.getColumn(i).setPreferredWidth(cellWidth);
-        }
+            // Update column widths
+            TableColumnModel columnModel = boardTable.getColumnModel();
+            for (int i = 0; i < columnModel.getColumnCount(); i++) {
+                columnModel.getColumn(i).setPreferredWidth(cellSize);
+            }
 
-        // Update UI
-        boardTable.revalidate();
-        boardTable.repaint();
-    }
-
-    // Cell renderer for the game board
-    private class BoardCellRenderer extends DefaultTableCellRenderer {
-        @Override
-        public Component getTableCellRendererComponent(JTable table, Object value,
-                                                       boolean isSelected, boolean hasFocus,
-                                                       int row, int column) {
-            JLabel label = (JLabel) super.getTableCellRendererComponent(
-                    table, value, isSelected, hasFocus, row, column);
-
-            // Set background color of cells
-            label.setBackground(Color.BLACK);
-            label.setBorder(BorderFactory.createLineBorder(new Color(255, 255, 0, 80), 1)); // Thinner border
-            label.setText(""); // Empty text
-
-            // Center the content
-            label.setHorizontalAlignment(SwingConstants.CENTER);
-
-            return label;
+            // Force repaint
+            revalidate();
+            repaint();
+        } catch (Exception ex) {
+            LOGGER.warning("Error resizing table: " + ex.getMessage());
         }
     }
 
@@ -136,7 +163,23 @@ public class GameView extends JPanel {
 
     @Override
     public Dimension getPreferredSize() {
-        // Set a default size twice as large
-        return new Dimension(800, 600);
+        return GameDimensions.getInitialWindowSize();
+    }
+
+    @Override
+    public Dimension getMinimumSize() {
+        return GameDimensions.getMinimumWindowSize();
+    }
+
+    public void updateScore(int score) {
+        scoreLabel.setText("Score: " + score);
+    }
+
+    public void updateTime(int seconds) {
+        timeLabel.setText("Time: " + seconds);
+    }
+
+    public void updateLives(int lives) {
+        livesLabel.setText("Lives: " + lives);
     }
 }
