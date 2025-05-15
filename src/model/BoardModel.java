@@ -6,11 +6,13 @@ public class BoardModel extends AbstractTableModel {
     private Object[][] data;
     private int rows;
     private int columns;
+    private GameMap gameMap;
 
     public BoardModel(int rows, int columns) {
         this.rows = rows;
         this.columns = columns;
         this.data = new Object[rows][columns];
+        this.gameMap = new GameMap(rows, columns);
 
         // Initialize empty board
         for (int i = 0; i < rows; i++) {
@@ -44,5 +46,9 @@ public class BoardModel extends AbstractTableModel {
     @Override
     public boolean isCellEditable(int row, int column) {
         return false; // Cells are not editable
+    }
+
+    public GameMap getGameMap() {
+        return gameMap;
     }
 }
