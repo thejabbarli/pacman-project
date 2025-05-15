@@ -12,36 +12,36 @@ import java.awt.image.BufferedImage;
  * Responsible for rendering the Pacman character
  * Follows Single Responsibility Principle by focusing only on visual representation
  */
-public class CharacterRenderer {
+public class CharacterRenderer extends AbstractRenderer {
     private PacmanModel pacman;
-    private int cellSize;
-    private JLabel pacmanLabel;
 
     public CharacterRenderer(PacmanModel pacman, int cellSize) {
+        super(cellSize);
         this.pacman = pacman;
-        this.cellSize = cellSize;
-        initializePacmanLabel();
+        updateImage();
+        updatePosition();
     }
 
-    private void initializePacmanLabel() {
-        pacmanLabel = new JLabel();
-        updateLabelImage();
-        updateLabelPosition();
-    }
-
-    public void updateLabelImage() {
+    @Override
+    public void updateImage() {
         ImageIcon originalIcon = pacman.getCurrentFrame();
         if (originalIcon != null) {
             // Resize the image to fit the cell
-            Image img = originalIcon.getImage();
-            Image resizedImg = img.getScaledInstance(cellSize, cellSize, Image.SCALE_SMOOTH);
+            Image resizedImg = resizeImage(originalIcon.getImage());
             ImageIcon resizedIcon = new ImageIcon(resizedImg);
 
             // Apply rotation based on direction
             ImageIcon rotatedIcon = rotateIconForDirection(resizedIcon, pacman.getCurrentDirection());
 
-            pacmanLabel.setIcon(rotatedIcon);
+            renderLabel.setIcon(rotatedIcon);
         }
+    }
+
+    @Override
+    public void updatePosition() {
+        int x = pacman.getColumn() * cellSize;
+        int y = pacman.getRow() * cellSize;
+        renderLabel.setBounds(x, y, cellSize, cellSize);
     }
 
     private ImageIcon rotateIconForDirection(ImageIcon icon, Direction direction) {
@@ -142,19 +142,11 @@ public class CharacterRenderer {
         return flippedImage;
     }
 
-    public void updateLabelPosition() {
-        int x = pacman.getColumn() * cellSize;
-        int y = pacman.getRow() * cellSize;
-        pacmanLabel.setBounds(x, y, cellSize, cellSize);
-    }
-
-    public void updateRenderer(int cellSize) {
-        this.cellSize = cellSize;
-        updateLabelImage();
-        updateLabelPosition();
+    public PacmanModel getPacman() {
+        return pacman;
     }
 
     public JLabel getPacmanLabel() {
-        return pacmanLabel;
+        return renderLabel;
     }
 }

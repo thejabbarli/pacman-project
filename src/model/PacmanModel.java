@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.swing.ImageIcon;
 
-// Pacman model only responsible for storing Pacman's state
-public class PacmanModel implements Movable {
+// Pacman model implements both Movable and Collidable
+public class PacmanModel implements Movable, Collidable {
     private int row;
     private int column;
     private Direction currentDirection;
@@ -71,6 +71,21 @@ public class PacmanModel implements Movable {
     @Override
     public void setSpeed(int speed) {
         this.speed = speed;
+    }
+
+    @Override
+    public boolean collidesWithMap(int row, int column) {
+        return this.row == row && this.column == column;
+    }
+
+    @Override
+    public void onCollision(Collidable other) {
+        // Handle collision based on the type of object
+        if (other instanceof Wall) {
+            // Stop movement or bounce back
+            // This will be handled by the movement service
+        }
+        // Handle other collision types in the future
     }
 
     public ImageIcon getCurrentFrame() {

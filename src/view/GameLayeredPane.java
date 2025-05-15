@@ -1,15 +1,19 @@
 package view;
 
 import controller.GameEngine;
-import model.GameMap;
+import model.GameMapWithWalls;
+import model.Wall;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Main game panel using JLayeredPane to organize game elements in layers
+ * Follows Single Responsibility Principle by focusing on UI organization
  */
 public class GameLayeredPane extends JLayeredPane {
     // Layer constants
@@ -19,7 +23,7 @@ public class GameLayeredPane extends JLayeredPane {
     public static final Integer CHARACTER_LAYER = 4;
     public static final Integer UI_LAYER = 5;
 
-    private GameMap gameMap;
+    private GameMapWithWalls gameMap;
     private GameEngine gameEngine;
 
     private JPanel gridPanel;
@@ -30,10 +34,13 @@ public class GameLayeredPane extends JLayeredPane {
 
     private final int CELL_SIZE = 20; // Default cell size
     private GridRenderer gridRenderer;
+    private List<WallRenderer> wallRenderers;
+    private boolean initialized = false;
 
-    public GameLayeredPane(GameMap gameMap, GameEngine gameEngine) {
+    public GameLayeredPane(GameMapWithWalls gameMap, GameEngine gameEngine) {
         this.gameMap = gameMap;
         this.gameEngine = gameEngine;
+        this.wallRenderers = new ArrayList<>();
 
         setLayout(null); // JLayeredPane uses absolute positioning
         setBackground(Color.BLACK);
@@ -47,8 +54,15 @@ public class GameLayeredPane extends JLayeredPane {
 
         // Add characters to layers
         addCharactersToLayers();
+
+        // Add walls to layers
+        addWallsToLayers();
+
         // Initialize movement after everything is set up
         gameEngine.initializeMovement(this);
+
+        // Mark as initialized
+        initialized = true;
 
         // Add resize listener
         addComponentListener(new ComponentAdapter() {
@@ -57,7 +71,6 @@ public class GameLayeredPane extends JLayeredPane {
                 resizeComponents();
             }
         });
-
     }
 
     private void initializeLayers() {
@@ -150,6 +163,15 @@ public class GameLayeredPane extends JLayeredPane {
         }
     }
 
+    private void addWallsToLayers() {
+        // Create wall renderers
+        for (Wall wall : gameMap.getWalls()) {
+            WallRenderer renderer = new WallRenderer(wall, CELL_SIZE);
+            wallRenderers.add(renderer);
+            wallPanel.add(renderer.getLabel());
+        }
+    }
+
     private void resizeComponents() {
         int width = getWidth();
         int height = getHeight();
@@ -187,6 +209,13 @@ public class GameLayeredPane extends JLayeredPane {
 
         // Update character renderers
         gameEngine.updateRendererSize(newCellSize);
+
+        // Update wall renderers
+        for (WallRenderer wallRenderer : wallRenderers) {
+            wallRenderer.updateCellSize(newCellSize);
+        }
+
+        // Update characters
         gameEngine.updateRenderers();
     }
 

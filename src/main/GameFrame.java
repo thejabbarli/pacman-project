@@ -2,7 +2,7 @@ package main;
 
 import controller.GameEngine;
 import controller.GameKeyListener;
-import model.GameMap;
+import model.GameMapWithWalls;
 import view.GameLayeredPane;
 
 import javax.swing.*;
@@ -11,7 +11,7 @@ import java.awt.*;
 public class GameFrame extends JFrame {
     private GameLayeredPane gamePane;
     private GameEngine gameEngine;
-    private GameMap gameMap;
+    private GameMapWithWalls gameMap;
 
     public GameFrame() {
         initializeFrame();
@@ -33,7 +33,10 @@ public class GameFrame extends JFrame {
 
     private void initializeGameComponents() {
         // Initialize game map (25x25 grid)
-        gameMap = new GameMap(25, 25);
+        gameMap = new GameMapWithWalls(25, 25);
+
+        // Generate walls
+        gameMap.generateBasicWalls();
 
         // Initialize game engine
         gameEngine = new GameEngine(gameMap);

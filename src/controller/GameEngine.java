@@ -1,7 +1,7 @@
 package controller;
 
 import model.Direction;
-import model.GameMap;
+import model.GameMapWithWalls;
 import model.PacmanModel;
 import service.MovementManager;
 import service.MovementService;
@@ -11,17 +11,17 @@ import animation.PacmanAnimator;
 
 /**
  * Game engine to orchestrate game logic
- * Follows Single Responsibility Principle by delegating specific tasks to other classes
+ * Updated to work with GameMapWithWalls
  */
 public class GameEngine {
-    private GameMap gameMap;
+    private GameMapWithWalls gameMap;
     private PacmanModel pacman;
     private CharacterRenderer pacmanRenderer;
     private PacmanAnimator pacmanAnimator;
     private MovementManager movementManager;
     private boolean renderersInitialized = false;
 
-    public GameEngine(GameMap gameMap) {
+    public GameEngine(GameMapWithWalls gameMap) {
         this.gameMap = gameMap;
 
         // Create Pacman in the center of the map
@@ -42,26 +42,16 @@ public class GameEngine {
         renderersInitialized = true;
     }
 
-    /**
-     * Initialize the movement manager after the GameLayeredPane is available
-     */
     public void initializeMovement(GameLayeredPane gamePane) {
         movementManager = new MovementManager(pacman, gameMap, gamePane);
         movementManager.start();
     }
 
-    /**
-     * Change Pacman's direction
-     * Note: This doesn't move Pacman immediately, but changes the direction for continuous movement
-     */
     public void setPacmanDirection(Direction direction) {
         // Just set the direction, the MovementManager will handle actual movement
         pacman.setDirection(direction);
     }
 
-    /**
-     * For immediate movement (used when testing or for special operations)
-     */
     public boolean movePacmanImmediate(Direction direction) {
         pacman.setDirection(direction);
         return MovementService.moveEntity(pacman, direction, gameMap.getWalkableCells());
@@ -69,13 +59,14 @@ public class GameEngine {
 
     public void updateRenderers() {
         if (renderersInitialized && pacmanRenderer != null) {
-            pacmanRenderer.updateLabelPosition();
+            // Use the abstract method name instead of the old method name
+            pacmanRenderer.updatePosition();
         }
     }
 
     public void updateRendererSize(int cellSize) {
         if (renderersInitialized && pacmanRenderer != null) {
-            pacmanRenderer.updateRenderer(cellSize);
+            pacmanRenderer.updateCellSize(cellSize);
         }
     }
 

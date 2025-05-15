@@ -1,8 +1,8 @@
 package service;
 
 import model.Direction;
+import model.GameMapWithWalls;
 import model.Movable;
-import model.GameMap;
 import view.GameLayeredPane;
 
 /**
@@ -11,13 +11,13 @@ import view.GameLayeredPane;
  */
 public class MovementManager implements Runnable {
     private final Movable entity;
-    private final GameMap gameMap;
+    private final GameMapWithWalls gameMap;
     private final GameLayeredPane gamePane;
     private volatile boolean running;
     private Thread movementThread;
     private final int MOVEMENT_DELAY_MS = 200; // Movement speed (lower = faster)
 
-    public MovementManager(Movable entity, GameMap gameMap, GameLayeredPane gamePane) {
+    public MovementManager(Movable entity, GameMapWithWalls gameMap, GameLayeredPane gamePane) {
         this.entity = entity;
         this.gameMap = gameMap;
         this.gamePane = gamePane;
@@ -53,7 +53,9 @@ public class MovementManager implements Runnable {
                     );
 
                     // Update the UI
-                    gamePane.updateGameState();
+                    if (moved) {
+                        gamePane.updateGameState();
+                    }
                 }
 
                 // Sleep before next movement

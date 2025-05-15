@@ -38,7 +38,8 @@ public class PacmanAnimator implements Runnable {
             try {
                 // Update the animation frame
                 pacman.nextFrame();
-                renderer.updateLabelImage();
+                // Use the updated method name
+                renderer.updateImage();
 
                 // Sleep for the animation delay
                 Thread.sleep(ANIMATION_DELAY_MS);
