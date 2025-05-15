@@ -3,6 +3,7 @@ package view;
 import controller.GameEngine;
 import model.GameMapWithWalls;
 import model.Wall;
+import model.Ghost;
 
 import javax.swing.*;
 import java.awt.*;
@@ -13,7 +14,7 @@ import java.util.List;
 
 /**
  * Main game panel using JLayeredPane to organize game elements in layers
- * Follows Single Responsibility Principle by focusing on UI organization
+ * Updated to include ghost rendering
  */
 public class GameLayeredPane extends JLayeredPane {
     // Layer constants
@@ -37,6 +38,11 @@ public class GameLayeredPane extends JLayeredPane {
     private List<WallRenderer> wallRenderers;
     private boolean initialized = false;
 
+    /**
+     * Create a new game layered pane
+     * @param gameMap The game map
+     * @param gameEngine The game engine
+     */
     public GameLayeredPane(GameMapWithWalls gameMap, GameEngine gameEngine) {
         this.gameMap = gameMap;
         this.gameEngine = gameEngine;
@@ -159,7 +165,13 @@ public class GameLayeredPane extends JLayeredPane {
         // Add Pacman to the character layer
         CharacterRenderer pacmanRenderer = gameEngine.getPacmanRenderer();
         if (pacmanRenderer != null) {
-            characterPanel.add(pacmanRenderer.getPacmanLabel());
+            characterPanel.add(pacmanRenderer.getLabel());
+        }
+
+        // Add ghosts to the character layer
+        List<GhostRenderer> ghostRenderers = gameEngine.getGhostRenderers();
+        for (GhostRenderer renderer : ghostRenderers) {
+            characterPanel.add(renderer.getLabel());
         }
     }
 
@@ -227,9 +239,20 @@ public class GameLayeredPane extends JLayeredPane {
         return new Dimension(width, height);
     }
 
+    /**
+     * Update game state (character positions, etc.)
+     */
     public void updateGameState() {
         // Update character positions
         gameEngine.updateRenderers();
         repaint();
+    }
+
+    /**
+     * Get the default cell size
+     * @return Cell size in pixels
+     */
+    public int getDefaultCellSize() {
+        return CELL_SIZE;
     }
 }
