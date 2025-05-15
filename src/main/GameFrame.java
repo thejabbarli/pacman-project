@@ -1,21 +1,22 @@
 package main;
 
-import view.GameView;
-import view.GameDimensions;
-import controller.GameController;
+import controller.GameEngine;
+import controller.GameKeyListener;
+import model.GameMap;
+import view.GameLayeredPane;
 
 import javax.swing.*;
 import java.awt.*;
 
 public class GameFrame extends JFrame {
-    private GameView gameView;
-    private GameController gameController;
+    private GameLayeredPane gamePane;
+    private GameEngine gameEngine;
+    private GameMap gameMap;
 
     public GameFrame() {
         initializeFrame();
-        setupGameComponents();
-        setupEventHandling();
-        pack(); // Pack components to preferred size
+        initializeGameComponents();
+        centerOnScreen();
     }
 
     private void initializeFrame() {
@@ -23,41 +24,40 @@ public class GameFrame extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setResizable(true);
 
-        // Ensure all panels have black background
+        // Set background color
         setBackground(Color.BLACK);
 
-        // Set minimum size
-        setMinimumSize(GameDimensions.getMinimumWindowSize());
-
-        // Remove all default margins
-        JPanel contentPane = new JPanel(new BorderLayout(0, 0));
-        contentPane.setBackground(Color.BLACK);
-        contentPane.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
-        setContentPane(contentPane);
-
-        // Remove any insets or borders
+        // Remove any default insets
         getRootPane().setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
-        ((JPanel)getContentPane()).setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
     }
 
-    private void setupGameComponents() {
-        // Create a grid
-        int rows = 25;
-        int columns = 25;
+    private void initializeGameComponents() {
+        // Initialize game map (25x25 grid)
+        gameMap = new GameMap(25, 25);
 
-        // Create the game view
-        gameView = new GameView(rows, columns);
+        // Initialize game engine
+        gameEngine = new GameEngine(gameMap);
 
-        // Add view to content pane with no gaps
-        getContentPane().add(gameView, BorderLayout.CENTER);
-    }
+        // Create and add the layered pane
+        gamePane = new GameLayeredPane(gameMap, gameEngine);
+        setContentPane(gamePane);
 
-    private void setupEventHandling() {
-        // Create the game controller
-        gameController = new GameController(gameView);
+        // Set size
+        setPreferredSize(new Dimension(600, 640)); // Extra room for UI elements
+        setMinimumSize(new Dimension(400, 440));
+        pack();
 
-        // Register key listener
-        addKeyListener(gameController);
+        // Add keyboard listener
+        addKeyListener(new GameKeyListener(gameEngine, gamePane));
         setFocusable(true);
+        requestFocus();
+    }
+
+    private void centerOnScreen() {
+        // Center the frame on the screen
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        int x = (screenSize.width - getWidth()) / 2;
+        int y = (screenSize.height - getHeight()) / 2;
+        setLocation(x, y);
     }
 }
