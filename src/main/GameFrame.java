@@ -11,18 +11,27 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.File;
 
+/**
+ * Main game frame
+ */
 public class GameFrame extends JFrame {
     private GameLayeredPane gamePane;
     private GameEngine gameEngine;
     private GameMapWithWalls gameMap;
     private char[][] originalMap; // To keep track of the original character map
 
+    /**
+     * Create a new game frame
+     */
     public GameFrame() {
         initializeFrame();
         initializeGameComponents();
         centerOnScreen();
     }
 
+    /**
+     * Initialize the frame properties
+     */
     private void initializeFrame() {
         setTitle("Pacman Game");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -35,6 +44,9 @@ public class GameFrame extends JFrame {
         getRootPane().setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
     }
 
+    /**
+     * Initialize game components
+     */
     private void initializeGameComponents() {
         // Try to load map from file first
         File mapFile = new File("res/maps/map1.txt");
@@ -44,17 +56,22 @@ public class GameFrame extends JFrame {
             MapLoader mapLoader = new MapLoader();
             originalMap = mapLoader.loadMap(mapFile.getPath());
             gameMap = mapLoader.createGameMap(originalMap);
+
+            // Create the game engine
+            gameEngine = new GameEngine(gameMap);
+
+            // Add points from map
+            mapLoader.addPointsFromMap(gameEngine, originalMap);
+
             System.out.println("Map loaded from file: " + mapFile.getPath());
         } else {
             // Fall back to generated map
             gameMap = new GameMapWithWalls(25, 25);
             gameMap.generateBasicWalls();
             originalMap = null;
+            gameEngine = new GameEngine(gameMap);
             System.out.println("Using generated map (map file not found)");
         }
-
-        // Initialize game engine
-        gameEngine = new GameEngine(gameMap);
 
         // If we have a map file, try to find Pacman's starting position
         if (originalMap != null) {
@@ -65,6 +82,9 @@ public class GameFrame extends JFrame {
         gamePane = new GameLayeredPane(gameMap, gameEngine);
         setContentPane(gamePane);
 
+        // Set character speeds (after movement systems are initialized)
+        setCharacterSpeeds();
+
         // Set size
         setPreferredSize(new Dimension(600, 640)); // Extra room for UI elements
         setMinimumSize(new Dimension(400, 440));
@@ -74,6 +94,42 @@ public class GameFrame extends JFrame {
         addKeyListener(new GameKeyListener(gameEngine, gamePane));
         setFocusable(true);
         requestFocus();
+
+        // Add a timer for game updates (for things not handled by the movement threads)
+        createGameTimer();
+    }
+
+    /**
+     * Set speeds for Pacman and ghosts
+     */
+    private void setCharacterSpeeds() {
+        // Wait a bit to ensure movement systems are initialized
+        SwingUtilities.invokeLater(() -> {
+            // Set ghost speed to slow (level 2)
+            gameEngine.setGhostSpeedLevel(2);
+
+            // Set Pacman speed to medium (level 3)
+            gameEngine.setPacmanSpeedLevel(3);
+
+            System.out.println("Pacman speed: " + gameEngine.getPacmanMoveDelay() + "ms");
+            System.out.println("Ghost speed: " + gameEngine.getGhostMoveDelay() + "ms");
+        });
+    }
+
+    /**
+     * Create a timer for periodic game updates
+     */
+    private void createGameTimer() {
+        // Update game state 30 times per second
+        Timer gameTimer = new Timer(33, e -> {
+            // Check for collisions
+            gameEngine.checkGhostCollision();
+
+            // Update UI with any game state changes
+            gamePane.updateGameState();
+        });
+
+        gameTimer.start();
     }
 
     /**
@@ -104,11 +160,37 @@ public class GameFrame extends JFrame {
         }
     }
 
+    /**
+     * Center the frame on the screen
+     */
     private void centerOnScreen() {
         // Center the frame on the screen
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         int x = (screenSize.width - getWidth()) / 2;
         int y = (screenSize.height - getHeight()) / 2;
         setLocation(x, y);
+    }
+
+    /**
+     * Cleanup resources when the frame is closed
+     */
+    @Override
+    public void dispose() {
+        // Stop all game threads
+        if (gameEngine != null) {
+            gameEngine.stopAll();
+        }
+        super.dispose();
+    }
+
+    /**
+     * Main method to start the game
+     */
+    public static void main(String[] args) {
+        // Use the Event Dispatch Thread for Swing applications
+        SwingUtilities.invokeLater(() -> {
+            GameFrame game = new GameFrame();
+            game.setVisible(true);
+        });
     }
 }

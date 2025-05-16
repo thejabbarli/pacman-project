@@ -1,5 +1,8 @@
 package map;
 
+import controller.GameEngine;
+import model.GameMapWithWalls;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -7,14 +10,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Simple class for parsing map files
+ * Responsible for loading map data from text files
  */
 public class MapLoader {
 
     /**
      * Loads a map from a text file.
-     * '#' represents walls, other characters are treated as open space.
-     * Handles spaces between characters.
+     * '#' represents walls, 'o' represents points, other characters are empty space.
      * @param filePath Path to the map file
      * @return 2D char array containing the map data
      */
@@ -93,5 +95,22 @@ public class MapLoader {
         }
 
         return gameMap;
+    }
+
+    /**
+     * Add points to the game based on the map data
+     * Points are added at positions marked with 'o'
+     * @param gameEngine The game engine
+     * @param charMap The character map
+     */
+    public void addPointsFromMap(controller.GameEngine gameEngine, char[][] charMap) {
+        for (int row = 0; row < charMap.length; row++) {
+            for (int col = 0; col < charMap[row].length; col++) {
+                if (charMap[row][col] == 'o') {
+                    // Add a point at this position
+                    gameEngine.addPoint(row, col);
+                }
+            }
+        }
     }
 }

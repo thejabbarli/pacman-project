@@ -3,7 +3,6 @@ package view;
 import controller.GameEngine;
 import model.GameMapWithWalls;
 import model.Wall;
-import model.Ghost;
 
 import javax.swing.*;
 import java.awt.*;
@@ -14,7 +13,6 @@ import java.util.List;
 
 /**
  * Main game panel using JLayeredPane to organize game elements in layers
- * Updated to include ghost rendering
  */
 public class GameLayeredPane extends JLayeredPane {
     // Layer constants
@@ -32,6 +30,10 @@ public class GameLayeredPane extends JLayeredPane {
     private JPanel ediblePanel;
     private JPanel characterPanel;
     private JPanel uiPanel;
+
+    private JLabel scoreLabel;
+    private JLabel timeLabel;
+    private JLabel livesLabel;
 
     private final int CELL_SIZE = 20; // Default cell size
     private GridRenderer gridRenderer;
@@ -55,8 +57,14 @@ public class GameLayeredPane extends JLayeredPane {
         // Initialize the character renderers first
         gameEngine.initializeRenderers(CELL_SIZE);
 
+        // Initialize point renderers
+        gameEngine.initializePointRenderers(CELL_SIZE);
+
         // Now initialize the layers
         initializeLayers();
+
+        // Add points to edible layer
+        addPointsToLayers();
 
         // Add characters to layers
         addCharactersToLayers();
@@ -140,15 +148,15 @@ public class GameLayeredPane extends JLayeredPane {
         // Add score, time, and lives labels
         Font statsFont = new Font("Arial", Font.BOLD, 16);
 
-        JLabel scoreLabel = new JLabel("Score: 0");
+        scoreLabel = new JLabel("Score: 0");
         scoreLabel.setForeground(Color.WHITE);
         scoreLabel.setFont(statsFont);
 
-        JLabel timeLabel = new JLabel("Time: 0");
+        timeLabel = new JLabel("Time: 0");
         timeLabel.setForeground(Color.WHITE);
         timeLabel.setFont(statsFont);
 
-        JLabel livesLabel = new JLabel("Lives: 3");
+        livesLabel = new JLabel("Lives: 3");
         livesLabel.setForeground(Color.WHITE);
         livesLabel.setFont(statsFont);
 
@@ -161,6 +169,16 @@ public class GameLayeredPane extends JLayeredPane {
         return panel;
     }
 
+    /**
+     * Add points to the edible layer
+     */
+    private void addPointsToLayers() {
+        List<PointRenderer> pointRenderers = gameEngine.getPointRenderers();
+        for (PointRenderer renderer : pointRenderers) {
+            ediblePanel.add(renderer.getLabel());
+        }
+    }
+
     private void addCharactersToLayers() {
         // Add Pacman to the character layer
         CharacterRenderer pacmanRenderer = gameEngine.getPacmanRenderer();
@@ -168,10 +186,10 @@ public class GameLayeredPane extends JLayeredPane {
             characterPanel.add(pacmanRenderer.getLabel());
         }
 
-        // Add ghosts to the character layer
-        List<GhostRenderer> ghostRenderers = gameEngine.getGhostRenderers();
-        for (GhostRenderer renderer : ghostRenderers) {
-            characterPanel.add(renderer.getLabel());
+        // Add ghost to the character layer
+        GhostRenderer ghostRenderer = gameEngine.getGhostRenderer();
+        if (ghostRenderer != null) {
+            characterPanel.add(ghostRenderer.getLabel());
         }
     }
 
@@ -243,6 +261,12 @@ public class GameLayeredPane extends JLayeredPane {
      * Update game state (character positions, etc.)
      */
     public void updateGameState() {
+        // Check if Pacman has collected any points
+        gameEngine.checkPointCollection();
+
+        // Update score display
+        scoreLabel.setText("Score: " + gameEngine.getScore());
+
         // Update character positions
         gameEngine.updateRenderers();
         repaint();

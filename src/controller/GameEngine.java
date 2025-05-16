@@ -1,16 +1,14 @@
 package controller;
 
-import model.Direction;
-import model.GameMapWithWalls;
-import model.PacmanModel;
-import model.Ghost;
-import model.Blinky;
+import model.*;
+import model.Point;
+import service.GhostManager;
 import service.MovementManager;
 import service.MovementService;
-import service.GhostManager;
 import view.CharacterRenderer;
-import view.GhostRenderer;
 import view.GameLayeredPane;
+import view.GhostRenderer;
+import view.PointRenderer;
 import animation.PacmanAnimator;
 
 import java.util.ArrayList;
@@ -18,17 +16,20 @@ import java.util.List;
 
 /**
  * Game engine to orchestrate game logic
- * Updated to include ghost management
  */
 public class GameEngine {
     private GameMapWithWalls gameMap;
     private PacmanModel pacman;
+    private Blinky ghost;
     private CharacterRenderer pacmanRenderer;
+    private GhostRenderer ghostRenderer;
     private PacmanAnimator pacmanAnimator;
     private MovementManager movementManager;
     private GhostManager ghostManager;
-    private List<Ghost> ghosts;
-    private List<GhostRenderer> ghostRenderers;
+    private List<Point> points;
+    private List<PointRenderer> pointRenderers;
+    private int score = 0;
+    private int lives = 3;
     private boolean renderersInitialized = false;
 
     /**
@@ -43,39 +44,22 @@ public class GameEngine {
         int centerColumn = gameMap.getColumns() / 2;
         this.pacman = new PacmanModel(centerRow, centerColumn);
 
-        // Initialize ghosts
-        this.ghosts = new ArrayList<>();
-        this.ghostRenderers = new ArrayList<>();
+        // Create ghost at the top-right corner
+        this.ghost = new Blinky(1, gameMap.getColumns() - 2);
 
-        // Create ghosts at default positions
-        createGhosts();
+        // Initialize points list
+        this.points = new ArrayList<>();
+        this.pointRenderers = new ArrayList<>();
     }
 
     /**
-     * Create ghost characters
-     */
-    private void createGhosts() {
-        // Create Blinky (top-right area)
-        Blinky blinky = new Blinky(1, gameMap.getColumns() - 2);
-        ghosts.add(blinky);
-
-        // You can add more ghost types here later
-    }
-
-    /**
-     * Initialize renderers for all game characters
+     * Initialize renderers for game characters
      * @param cellSize Cell size in pixels
      */
     public void initializeRenderers(int cellSize) {
-        // Create Pacman renderer
+        // Create renderers
         pacmanRenderer = new CharacterRenderer(pacman, cellSize);
-
-        // Create ghost renderers
-        ghostRenderers.clear();
-        for (Ghost ghost : ghosts) {
-            GhostRenderer renderer = new GhostRenderer(ghost, cellSize);
-            ghostRenderers.add(renderer);
-        }
+        ghostRenderer = new GhostRenderer(ghost, cellSize);
 
         // Create and start animators
         pacmanAnimator = new PacmanAnimator(pacman, pacmanRenderer);
@@ -83,6 +67,18 @@ public class GameEngine {
 
         // Mark as initialized
         renderersInitialized = true;
+    }
+
+    /**
+     * Initialize point renderers
+     * @param cellSize Cell size in pixels
+     */
+    public void initializePointRenderers(int cellSize) {
+        pointRenderers.clear();
+        for (Point point : points) {
+            PointRenderer renderer = new PointRenderer(point, cellSize);
+            pointRenderers.add(renderer);
+        }
     }
 
     /**
@@ -95,10 +91,7 @@ public class GameEngine {
         movementManager.start();
 
         // Initialize ghost movement
-        ghostManager = new GhostManager(gameMap, pacman, gamePane);
-        for (Ghost ghost : ghosts) {
-            ghostManager.addGhost(ghost);
-        }
+        ghostManager = new GhostManager(ghost, gameMap, pacman, gamePane);
         ghostManager.start();
     }
 
@@ -122,19 +115,85 @@ public class GameEngine {
     }
 
     /**
+     * Add a point to the game
+     * @param row Row position
+     * @param column Column position
+     */
+    public void addPoint(int row, int column) {
+        Point point = new Point(row, column);
+        points.add(point);
+    }
+
+    /**
+     * Check if Pacman has collected any points
+     */
+    public void checkPointCollection() {
+        for (Point point : points) {
+            if (!point.isCollected() &&
+                    point.getRow() == pacman.getRow() &&
+                    point.getColumn() == pacman.getColumn()) {
+                // Collect the point
+                point.collect();
+                // Increase score
+                score += 10;
+                // Update UI
+                updatePointRenderers();
+            }
+        }
+    }
+
+    /**
+     * Check if Pacman collides with the ghost
+     */
+    public void checkGhostCollision() {
+        if (ghost.getRow() == pacman.getRow() && ghost.getColumn() == pacman.getColumn()) {
+            // Lose a life
+            lives--;
+
+            // Reset positions
+            if (lives > 0) {
+                resetPositions();
+            } else {
+                // Game over
+                // This would be handled by a game over screen or similar
+                System.out.println("Game Over!");
+            }
+        }
+    }
+
+    /**
+     * Reset character positions after losing a life
+     */
+    private void resetPositions() {
+        // Reset Pacman to center
+        int centerRow = gameMap.getRows() / 2;
+        int centerColumn = gameMap.getColumns() / 2;
+        pacman.setPosition(centerRow, centerColumn);
+
+        // Reset ghost to starting position
+        ghost.setPosition(1, gameMap.getColumns() - 2);
+    }
+
+    /**
+     * Update point renderers
+     */
+    public void updatePointRenderers() {
+        for (PointRenderer renderer : pointRenderers) {
+            renderer.updateImage();
+        }
+    }
+
+    /**
      * Update all renderers
      */
     public void updateRenderers() {
         if (renderersInitialized) {
-            // Update Pacman renderer
             if (pacmanRenderer != null) {
                 pacmanRenderer.updatePosition();
             }
-
-            // Update ghost renderers
-            for (GhostRenderer renderer : ghostRenderers) {
-                renderer.updatePosition();
-                renderer.updateImage();
+            if (ghostRenderer != null) {
+                ghostRenderer.updatePosition();
+                ghostRenderer.updateImage();
             }
         }
     }
@@ -145,13 +204,13 @@ public class GameEngine {
      */
     public void updateRendererSize(int cellSize) {
         if (renderersInitialized) {
-            // Update Pacman renderer
             if (pacmanRenderer != null) {
                 pacmanRenderer.updateCellSize(cellSize);
             }
-
-            // Update ghost renderers
-            for (GhostRenderer renderer : ghostRenderers) {
+            if (ghostRenderer != null) {
+                ghostRenderer.updateCellSize(cellSize);
+            }
+            for (PointRenderer renderer : pointRenderers) {
                 renderer.updateCellSize(cellSize);
             }
         }
@@ -173,6 +232,88 @@ public class GameEngine {
     }
 
     /**
+     * Set ghost's movement delay (higher = slower)
+     * @param delay The movement delay in milliseconds
+     */
+    public void setGhostMoveDelay(int delay) {
+        if (ghost != null) {
+            ghost.setMoveDelay(delay);
+        }
+    }
+
+    /**
+     * Get ghost's movement delay
+     * @return The movement delay in milliseconds
+     */
+    public int getGhostMoveDelay() {
+        if (ghost != null) {
+            return ghost.getMoveDelay();
+        }
+        return 0;
+    }
+
+    /**
+     * Set ghost's speed level
+     * @param level Speed level (1-5, where 1 is slowest, 5 is fastest)
+     */
+    public void setGhostSpeedLevel(int level) {
+        if (ghost != null) {
+            // Map level 1-5 to delay values
+            int delay;
+            switch (level) {
+                case 1: delay = 800; break; // Very slow
+                case 2: delay = 600; break; // Slow
+                case 3: delay = 400; break; // Medium
+                case 4: delay = 250; break; // Fast
+                case 5: delay = 150; break; // Very fast
+                default: delay = 400; break; // Default medium speed
+            }
+            ghost.setMoveDelay(delay);
+        }
+    }
+
+    /**
+     * Set Pacman's movement delay (higher = slower)
+     * @param delay The movement delay in milliseconds
+     */
+    public void setPacmanMoveDelay(int delay) {
+        if (movementManager != null) {
+            movementManager.setMovementDelay(delay);
+        }
+    }
+
+    /**
+     * Get Pacman's movement delay
+     * @return The movement delay in milliseconds
+     */
+    public int getPacmanMoveDelay() {
+        if (movementManager != null) {
+            return movementManager.getMovementDelay();
+        }
+        return 0;
+    }
+
+    /**
+     * Set Pacman's speed level
+     * @param level Speed level (1-5, where 1 is slowest, 5 is fastest)
+     */
+    public void setPacmanSpeedLevel(int level) {
+        if (movementManager != null) {
+            // Map level 1-5 to delay values
+            int delay;
+            switch (level) {
+                case 1: delay = 300; break; // Very slow
+                case 2: delay = 200; break; // Slow
+                case 3: delay = 150; break; // Medium
+                case 4: delay = 100; break; // Fast
+                case 5: delay = 70; break;  // Very fast
+                default: delay = 200; break; // Default medium speed
+            }
+            movementManager.setMovementDelay(delay);
+        }
+    }
+
+    /**
      * Get the Pacman model
      * @return The Pacman model
      */
@@ -189,19 +330,43 @@ public class GameEngine {
     }
 
     /**
-     * Get all ghost renderers
-     * @return List of ghost renderers
+     * Get the ghost
+     * @return The ghost
      */
-    public List<GhostRenderer> getGhostRenderers() {
-        return ghostRenderers;
+    public Blinky getGhost() {
+        return ghost;
     }
 
     /**
-     * Get all ghosts
-     * @return List of ghosts
+     * Get the ghost renderer
+     * @return The ghost renderer
      */
-    public List<Ghost> getGhosts() {
-        return ghosts;
+    public GhostRenderer getGhostRenderer() {
+        return ghostRenderer;
+    }
+
+    /**
+     * Get point renderers
+     * @return List of point renderers
+     */
+    public List<PointRenderer> getPointRenderers() {
+        return pointRenderers;
+    }
+
+    /**
+     * Get current score
+     * @return The score
+     */
+    public int getScore() {
+        return score;
+    }
+
+    /**
+     * Get remaining lives
+     * @return Number of lives
+     */
+    public int getLives() {
+        return lives;
     }
 
     /**

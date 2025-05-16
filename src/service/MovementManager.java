@@ -15,13 +15,31 @@ public class MovementManager implements Runnable {
     private final GameLayeredPane gamePane;
     private volatile boolean running;
     private Thread movementThread;
-    private final int MOVEMENT_DELAY_MS = 200; // Movement speed (lower = faster)
+    private int movementDelay = 200; // Movement speed (lower = faster)
 
     public MovementManager(Movable entity, GameMapWithWalls gameMap, GameLayeredPane gamePane) {
         this.entity = entity;
         this.gameMap = gameMap;
         this.gamePane = gamePane;
         this.running = false;
+    }
+
+    /**
+     * Set movement delay in milliseconds (higher = slower)
+     * @param delay Movement delay
+     */
+    public void setMovementDelay(int delay) {
+        if (delay >= 50) { // Prevent too fast movement
+            this.movementDelay = delay;
+        }
+    }
+
+    /**
+     * Get current movement delay
+     * @return Movement delay in milliseconds
+     */
+    public int getMovementDelay() {
+        return movementDelay;
     }
 
     public void start() {
@@ -59,7 +77,7 @@ public class MovementManager implements Runnable {
                 }
 
                 // Sleep before next movement
-                Thread.sleep(MOVEMENT_DELAY_MS);
+                Thread.sleep(movementDelay);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 break;

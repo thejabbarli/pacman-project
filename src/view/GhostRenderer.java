@@ -1,24 +1,23 @@
 package view;
 
-import model.Direction;
-import model.Ghost;
+import model.Blinky;
 
 import javax.swing.*;
 import java.awt.*;
 
 /**
- * Renderer for ghost characters
+ * Renderer for a ghost character
  */
 public class GhostRenderer extends AbstractRenderer {
 
-    private Ghost ghost;
+    private Blinky ghost;
 
     /**
      * Create a new ghost renderer
      * @param ghost The ghost to render
      * @param cellSize Cell size in pixels
      */
-    public GhostRenderer(Ghost ghost, int cellSize) {
+    public GhostRenderer(Blinky ghost, int cellSize) {
         super(cellSize);
         this.ghost = ghost;
         updateImage();
@@ -46,15 +45,15 @@ public class GhostRenderer extends AbstractRenderer {
      * Get the ghost model
      * @return The ghost
      */
-    public Ghost getGhost() {
+    public Blinky getGhost() {
         return ghost;
     }
 
     /**
-     * Get the label component
-     * @return The JLabel
+     * Get the JLabel for this renderer
+     * @return The label component
      */
-    public JLabel getGhostLabel() {
+    public JLabel getLabel() {
         return renderLabel;
     }
 }
